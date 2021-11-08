@@ -1,0 +1,142 @@
+---
+title: "npillana_Assignment 1"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+# Loading Libraries
+
+```{r}
+
+library(dplyr)
+library(ISLR)
+library(ggplot2)
+
+```
+
+# Data Preparation
+##Loading DataSet
+
+```{r}
+SafeBabies <- Carseats %>% select("Sales", "Price", "ShelveLoc") 
+summary(SafeBabies)
+
+```
+
+## Clean the data. Check for any missing vales 
+
+
+```{r}
+
+table(is.na(SafeBabies))
+sum(is.na(SafeBabies))
+
+```
+
+
+
+# Divide data based on shelveLoc i.e, Good, Bad and Medium
+
+```{r}
+
+Good <- filter(SafeBabies, ShelveLoc == "Good")
+Bad <- filter(SafeBabies, ShelveLoc == "Bad")
+Medium <- filter(SafeBabies, ShelveLoc == "Medium")
+
+```
+
+# Visualizing the Price and Sales based on Shelve location
+
+```{r}
+
+ggplot(data=SafeBabies) + aes(x = ShelveLoc, y = Price) + geom_boxplot(fill = "blue") + labs(x = "ShelveLoc", title = "Price based on ShelveLoc") + theme_minimal()
+ggplot(data=SafeBabies) + aes(x = ShelveLoc, y = Sales) + geom_boxplot(fill = "blue") + labs(x = "ShelveLoc", title = "Sales based on ShelveLoc") + theme_minimal()
+ggplot(data=SafeBabies) + aes(x = Price, y = Sales) + geom_point(size = 1L, colour = "blue") + labs(title = "Sales based on Price") + theme_minimal()
+
+```
+
+Based on above visuals the ShelveLoc with Good has the highest sales when compared to others and the price for Good ShelveLoc is slightly higher than Bad and Medium
+
+# Build a Linear Model
+
+### Lets build a linear model to predict the sales for all ShelveLoc 
+
+```{r}
+
+Good_Shelve <- lm(Sales ~ Price, data = Good)
+Bad_Shelve <- lm(Sales ~ Price, data = Bad)
+summary(Good_Shelve)
+summary(Bad_Shelve)
+
+```
+The adjusted R2 tells you the percentage of variation explained by only the independent variables that actually affect the dependent variable.
+Adjusted R-squared:0.43 for Good ShelveLoc and Adjusted R-squared:0.3032 for Bad ShelveLoc, which explains variability in the car price for Car Seats.
+
+# Formulating the Problem
+Total Profit= Sales * Profit_per_Unit 
+Profit_per_Unit= price – cost
+Sales=b1*price+b0
+Total Profit= (price – cost) *(b1*price+b0)  =b1*price^2+b0*price-cost*b1*price-cost*b0
+                                             =b1*price^2+(b0 -cost*b1)*price-cost*b0
+
+Now we have to find the optimal value, set the derivative to Zero
+Total Profit derivative = 2b1*price + b0-b1*cost
+
+Then Price is;
+Price = (-b0)-(b1*cost))/2b1
+
+# Solving the Problem
+
+```{r}
+
+#Lets calculate optimal price for car seat for both Good and Bad Shelve at cost $55
+
+OptimalPrice <- function(prod_cost, b_0, b_1) {return(((-1 * b_0) + (b_1 * prod_cost)) /(2 * b_1))}
+Good_OptimalPrice<- OptimalPrice(55, Good_Shelve$coefficients[1], Good_Shelve$coefficients[2])
+Good_OptimalPrice
+paste("optimal price for car seats with good shelve",Good_OptimalPrice)
+
+Bad_OptimalPrice<- OptimalPrice(55, Bad_Shelve$coefficients[1], Bad_Shelve$coefficients[2])
+Bad_OptimalPrice
+paste("optimal price for car seats with Bad shelve",Bad_OptimalPrice)
+
+```
+
+### Calculate the optimal prive when the cost varies from $40 to $80 with $5 increments
+
+```{r}
+
+Varied_Cost <- seq(40,85, by=5)
+
+for( i in Varied_Cost){
+  OptimalPrice_Good <- OptimalPrice(Varied_Cost, Good_Shelve$coefficients[1],Good_Shelve$coefficients[2])
+  OptimalPrice_Bad <- OptimalPrice(Varied_Cost, Bad_Shelve$coefficients[1],Bad_Shelve$coefficients[2])
+}
+
+
+```
+
+# Now, we will combine production costs and optimal prices for good and bad shelve location
+
+```{r}
+
+Combine_cost <- data.frame(cbind(Varied_Cost,OptimalPrice_Good, OptimalPrice_Bad))
+Combine_cost
+
+```
+
+# Visualizing the optimal cost with varying with Production costs from $40 to $85 for Good Shelve and Bad Shelve 
+
+```{r}
+
+ggplot(data=Combine_cost) + aes(x = Varied_Cost, y = OptimalPrice_Good) + geom_boxplot(fill = "blue") + labs(x = "Varied_Cost", title = "Optimal Price for Good shelve") + theme_minimal()
+ggplot(data=Combine_cost) + aes(x = Varied_Cost, y = OptimalPrice_Bad) + geom_boxplot(fill = "blue") + labs(x = "Varied_Cost", title = "Optimal Price for Bad shelve") + theme_minimal()
+
+
+```
+
+# The above Visuals show that the Optimal Price for the Car seats at Good Shelve is higher than the Optimal Price for the Car seats at Bad Shelve.
+
+
